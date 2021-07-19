@@ -35,7 +35,7 @@ const profile = auth0Profile({
   sessionData: `id name email`,
   autoCreate: true,
   userMap: { subjectId: 'id', name: 'name' },
-  accountMap: {},
+  accountMap: { authProvider: 'provider' },
   profileMap: { email: 'email' },
   profilePageName: 'me',
 });

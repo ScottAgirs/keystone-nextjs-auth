@@ -11,6 +11,8 @@ import {
   createAuth,
   nextAuthProviders as Providers,
 } from '@opensaas/keystone-nextjs-auth';
+
+import { text, relationship, checkbox, json } from '@keystone-next/fields';
 // import * as Path from 'path';
 import { profileTemplate } from './templates/profile';
 import { ProfileConfig } from './types';
@@ -46,13 +48,14 @@ export function auth0Profile<
       const msg = `A createAuth() invocation specifies the list "${listKey}" but no list with that key has been defined.`;
       throw new Error(msg);
     }
-
+    /** 
     const identityFieldConfig = listConfig.fields[identityField];
     if (identityFieldConfig === undefined) {
       const i = JSON.stringify(identityField);
       const msg = `A createAuth() invocation for the "${listKey}" list specifies ${i} as its identityField but no field with that key exists on the list.`;
       throw new Error(msg);
     }
+    */
   };
 
   const getAdditionalFiles = () => {
@@ -107,6 +110,63 @@ export function auth0Profile<
         ...keystoneConfig.lists,
         [listKey]: {
           ...keystoneConfig.lists[listKey],
+          fields: {
+            name: text({ isRequired: true }),
+            email: text({ isRequired: true }),
+            subjectId: text({
+              ui: {
+                itemView: { fieldMode: 'read' },
+              },
+              isUnique: true,
+              access: {
+                create: () => false,
+                read: true,
+                update: () => false,
+              },
+            }),
+            authProvider: text({
+              ui: {
+                itemView: { fieldMode: 'read' },
+              },
+              access: {
+                create: () => false,
+                read: true,
+                update: () => false,
+              },
+            }),
+            providerConnection: text({
+              ui: {
+                itemView: { fieldMode: 'read' },
+              },
+              access: {
+                create: () => false,
+                read: true,
+                update: () => false,
+              },
+            }),
+            emailVerified: checkbox({
+              ui: {
+                itemView: { fieldMode: 'read' },
+              },
+              defaultValue: false,
+              access: {
+                create: () => false,
+                read: true,
+                update: () => false,
+              },
+            }),
+            identities: json({
+              ui: {
+                itemView: { fieldMode: 'read' },
+              },
+              access: {
+                create: () => false,
+                read: true,
+                update: () => false,
+              },
+            }),
+            ...keystoneConfig.lists[listKey].fields,
+          },
         },
       },
     });

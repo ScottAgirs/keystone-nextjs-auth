@@ -17,9 +17,6 @@ export const User = list({
     hideDelete: () => true,
   },
   fields: {
-    name: text({ isRequired: true }),
-    email: text({ isRequired: true, isUnique: true }),
-    subjectId: text({ isUnique: true }),
     role: relationship({
       ref: 'Role.assignedTo',
     }),
