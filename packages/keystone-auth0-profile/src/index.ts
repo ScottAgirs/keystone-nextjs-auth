@@ -157,7 +157,8 @@ export function auth0Profile<
             }),
             identities: json({
               ui: {
-                itemView: { fieldMode: 'read' },
+                views: require.resolve('./fields/identities.tsx'),
+                itemView: { fieldMode: 'edit' },
               },
               access: {
                 create: () => false,

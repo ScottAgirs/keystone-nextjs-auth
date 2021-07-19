@@ -79,13 +79,11 @@ function ItemForm({
   itemGetter,
   selectedFields,
   fieldModes,
-  showDelete,
 }: {
   listKey: string;
   itemGetter: DataGetter<ItemData>;
   selectedFields: string;
   fieldModes: Record<string, 'edit' | 'read' | 'hidden'>;
-  showDelete: boolean;
 }) {
   const list = useList(listKey);
 
@@ -200,28 +198,6 @@ function ItemForm({
         )}
         value={state.value}
       />
-      <Button
-        onClick={() =>
-          signIn(
-            'auth0',
-            { callbackUrl: '/me' },
-            { connection: 'Username-Password-Authentication' }
-          )
-        }
-      >
-        Link Username/Password Account
-      </Button>
-      <Button
-        onClick={() =>
-          signIn(
-            'auth0',
-            { callbackUrl: '/me' },
-            { connection: 'google-oauth2' }
-          )
-        }
-      >
-        Link Google Account
-      </Button>
       <Toolbar
         onSave={onSave}
         hasChangedFields={!!changedFields.size}
@@ -232,97 +208,8 @@ function ItemForm({
           });
         })}
         loading={loading}
-        deleteButton={useMemo(
-          () =>
-            showDelete ? (
-              <DeleteButton
-                list={list}
-                itemLabel={
-                  (itemGetter.data?.[list.labelField] ??
-                    itemGetter.data?.id!) as string
-                }
-                itemId={itemGetter.data?.id!}
-              />
-            ) : undefined,
-          [
-            showDelete,
-            list,
-            itemGetter.data?.[list.labelField],
-            itemGetter.data?.id,
-          ]
-        )}
       />
     </Box>
-  );
-}
-
-function DeleteButton({
-  itemLabel,
-  itemId,
-  list,
-}: {
-  itemLabel: string;
-  itemId: string;
-  list: ListMeta;
-}) {
-  const toasts = useToasts();
-  const [deleteItem, { loading }] = useMutation(
-    gql`mutation ($id: ID!) {
-      ${list.gqlNames.deleteMutationName}(id: $id) {
-        id
-      }
-    }`,
-    { variables: { id: itemId } }
-  );
-  const [isOpen, setIsOpen] = useState(false);
-  const router = useRouter();
-
-  return (
-    <>
-      <Button
-        tone="negative"
-        onClick={() => {
-          setIsOpen(true);
-        }}
-      >
-        Delete
-      </Button>
-      <AlertDialog
-        // TODO: change the copy in the title and body of the modal
-        title="Delete Confirmation"
-        isOpen={isOpen}
-        tone="negative"
-        actions={{
-          confirm: {
-            label: 'Delete',
-            action: async () => {
-              await deleteItem().catch((err) => {
-                toasts.addToast({
-                  title: 'Failed to delete item',
-                  message: err.message,
-                  tone: 'negative',
-                });
-              });
-              router.push(`/${list.path}`);
-              toasts.addToast({
-                title: itemLabel,
-                message: 'Deleted successfully',
-                tone: 'positive',
-              });
-            },
-            loading,
-          },
-          cancel: {
-            label: 'Cancel',
-            action: () => {
-              setIsOpen(false);
-            },
-          },
-        }}
-      >
-        Are you sure you want to delete <strong>{itemLabel}</strong>?
-      </AlertDialog>
-    </>
   );
 }
 
@@ -336,6 +223,9 @@ const ItemPage = ({ listKey }: ItemPageProps) => {
 
   const list = useList(listKey);
   const { palette, spacing, typography } = useTheme();
+
+  // Remove identities from the field list so we can render our own...
+  delete list.fields.identities;
 
   const { query, selectedFields } = useMemo(() => {
     const selectedFields = Object.keys(list.fields)
@@ -411,10 +301,6 @@ const ItemPage = ({ listKey }: ItemPageProps) => {
 
   const metaQueryErrors = dataGetter.get('keystone').errors;
 
-  // NOTE: The create button is always hidden on this page for now, while we work on the
-  // placment of the save and delete buttons.
-  const hideCreate = true; // data?.keystone.adminMeta.list.hideCreate;
-
   if (sessionLoading) return <p>Loading...</p>;
   return (
     <PageContainer
@@ -435,20 +321,6 @@ const ItemPage = ({ listKey }: ItemPageProps) => {
               minWidth: 0,
             }}
           >
-            <Heading type="h3">
-              <Link href={`/${list.path}`} passHref>
-                <a css={{ textDecoration: 'none' }}>{list.label}</a>
-              </Link>
-            </Heading>
-            <div
-              css={{
-                color: palette.neutral500,
-                marginLeft: spacing.xsmall,
-                marginRight: spacing.xsmall,
-              }}
-            >
-              <ChevronRightIcon />
-            </div>
             <Heading
               as="h1"
               type="h3"
@@ -459,6 +331,7 @@ const ItemPage = ({ listKey }: ItemPageProps) => {
                 flex: 1,
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
+                textTransform: 'capitalize',
               }}
             >
               {loading
@@ -467,9 +340,9 @@ const ItemPage = ({ listKey }: ItemPageProps) => {
                   data.item &&
                   (data.item[list.labelField] || data.item.id)) ||
                 id}
+              &apos;s Profile
             </Heading>
           </div>
-          {!hideCreate && <CreateButton listKey={listKey} id={data.item.id} />}
         </div>
       }
     >
@@ -491,86 +364,10 @@ const ItemPage = ({ listKey }: ItemPageProps) => {
               listKey={listKey}
               itemGetter={dataGetter.get('item') as DataGetter<ItemData>}
             />
-
-            <StickySidebar>
-              <FieldLabel>Item ID</FieldLabel>
-              <div
-                css={{
-                  display: 'flex',
-                  alignItems: 'center',
-                }}
-              >
-                <TextInput
-                  css={{
-                    marginRight: spacing.medium,
-                    fontFamily: typography.fontFamily.monospace,
-                    fontSize: typography.fontSize.small,
-                  }}
-                  readOnly
-                  value={data.item.id}
-                />
-                <Tooltip content="Copy ID">
-                  {(props) => (
-                    <Button
-                      {...props}
-                      aria-label="Copy ID"
-                      onClick={() => {
-                        copyToClipboard(data.item.id);
-                      }}
-                    >
-                      <ClipboardIcon size="small" />
-                    </Button>
-                  )}
-                </Tooltip>
-              </div>
-            </StickySidebar>
           </ColumnLayout>
         </>
       )}
     </PageContainer>
-  );
-};
-
-const CreateButton = ({ id, listKey }: { id: string; listKey: string }) => {
-  const list = useList(listKey);
-  const router = useRouter();
-
-  const [createModalState, setModalState] = useState<
-    { state: 'closed' } | { state: 'open'; id: string }
-  >({
-    state: 'closed',
-  });
-
-  if (createModalState.state === 'open' && createModalState.id !== id) {
-    setModalState({ state: 'closed' });
-  }
-
-  return (
-    <>
-      <Button
-        disabled={createModalState.state === 'open'}
-        onClick={() => {
-          setModalState({ state: 'open', id: id as string });
-        }}
-        tone="positive"
-        size="small"
-      >
-        Create New {list.singular}
-      </Button>
-
-      <DrawerController isOpen={createModalState.state === 'open'}>
-        <CreateItemDrawer
-          listKey={listKey}
-          onCreate={({ id }) => {
-            router.push(`/${list.path}/[id]`, `/${list.path}/${id}`);
-            setModalState({ state: 'closed' });
-          }}
-          onClose={() => {
-            setModalState({ state: 'closed' });
-          }}
-        />
-      </DrawerController>
-    </>
   );
 };
 
@@ -648,20 +445,5 @@ const ColumnLayout = (props: HTMLAttributes<HTMLDivElement>) => {
         {...props}
       />
     </div>
-  );
-};
-
-const StickySidebar = (props: HTMLAttributes<HTMLDivElement>) => {
-  const { spacing } = useTheme();
-  return (
-    <div
-      css={{
-        marginTop: spacing.xlarge,
-        marginBottom: spacing.xxlarge,
-        position: 'sticky',
-        top: spacing.xlarge,
-      }}
-      {...props}
-    />
   );
 };
