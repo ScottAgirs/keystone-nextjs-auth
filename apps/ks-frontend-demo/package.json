@@ -61,7 +61,7 @@
     "@preconstruct/next": "^3.0.1",
     "@stripe/react-stripe-js": "^1.6.0",
     "@stripe/stripe-js": "^1.22.0",
-    "apollo-upload-client": "^16.0.0",
+    "apollo-upload-client": "^17.0.0",
     "core-js": "^3.19.3",
     "date-fns": "^2.22.1",
     "deepmerge": "^4.2.2",
